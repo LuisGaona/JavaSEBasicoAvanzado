@@ -31,6 +31,7 @@ public class AmazonUtil {
 			response = sc.nextInt();
 		}
 		System.out.println("Tu Respuesta fue: " + response + "\n");
+		//sc.close();
 		return response;
 	}
 

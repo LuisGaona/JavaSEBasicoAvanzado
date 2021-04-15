@@ -4,20 +4,34 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import com.anncode.amazonviewer.model.Book;
 import com.anncode.amazonviewer.model.Chapter;
+import com.anncode.amazonviewer.model.Film;
 import com.anncode.amazonviewer.model.Magazine;
 import com.anncode.amazonviewer.model.Movie;
 import com.anncode.amazonviewer.model.Serie;
 import com.anncode.makereport.Report;
 import com.anncode.util.AmazonUtil;
-
+/**
+ * <h1>AmazonViewer</h1>
+ * AmazonViewer es un programa que permite visualizar Movies, Series con sus respetivos
+ * Chapters, Books y Magazines.
+ * <p>
+ * Existen algunas reglas como todos los elementos pueden ser visualizados o leídos a excepción de las Magazines, 
+ * estas sólo pueden ser vistas a modo de exposición sin ser leídas.
+ * 
+ * @author Luis Gaona
+ * @version 1.1
+ * @since 2021
+ * */
 public class Main {
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		
 		showMenu();
 
 	}
@@ -79,18 +93,20 @@ public class Main {
 		}while(exit != 0);
 	}
 	
-	static ArrayList<Movie> movies = Movie.makeMoviesList();
+	static ArrayList<Movie> movies = new ArrayList<>();
 	public static void showMovies() {
+		movies = Movie.makeMoviesList();
 		int exit = 1;
 		
 		do {
 			System.out.println();
 			System.out.println(":: MOVIES ::");
 			System.out.println();
-			
-			for (int i = 0; i < movies.size(); i++) { //1. Movie 1
+			AtomicInteger atomicInteger= new AtomicInteger(1);
+			movies.forEach(m -> System.out.println(atomicInteger.getAndIncrement()+". "+m.getTitle() + " Visto: " + m.isViewed()));
+			/*for (int i = 0; i < movies.size(); i++) { //1. Movie 1
 				System.out.println(i+1 + ". " + movies.get(i).getTitle() + " Visto: " + movies.get(i).isViewed());
-			}
+			}*/
 			
 			System.out.println("0. Regresar al Menu");
 			System.out.println();
@@ -105,18 +121,7 @@ public class Main {
 			}
 			if (response > 0) {
 				Movie movieSelected = movies.get(response-1);
-				movieSelected.setViewed(true);
-				Date dateI = movieSelected.startToSee(new Date());
-				
-				for (int i = 0; i < 100000; i++) {
-					System.out.println("..........");
-				}
-				
-				//Termine de verla
-				movieSelected.stopToSee(dateI, new Date());
-				System.out.println();
-				System.out.println("Viste: " + movieSelected);
-				System.out.println("Por: " + movieSelected.getTimeViewed() + " milisegundos");
+				movieSelected.view();
 			}
 			
 			
@@ -181,18 +186,7 @@ public class Main {
 			
 			if(response > 0) {
 				Chapter chapterSelected = chaptersOfSerieSelected.get(response-1);
-				chapterSelected.setViewed(true);
-				Date dateI = chapterSelected.startToSee(new Date());
-				
-				for (int i = 0; i < 100000; i++) {
-					System.out.println("..........");
-				}
-				
-				//Termine de verla
-				chapterSelected.stopToSee(dateI, new Date());
-				System.out.println();
-				System.out.println("Viste: " + chapterSelected);
-				System.out.println("Por: " + chapterSelected.getTimeViewed() + " milisegundos");
+				chapterSelected.view();
 			}
 		}while(exit !=0);
 	}
@@ -223,18 +217,7 @@ public class Main {
 			
 			if(response > 0) {
 				Book bookSelected = books.get(response-1);
-				bookSelected.setReaded(true);
-				Date dateI = bookSelected.startToSee(new Date());
-				
-				for (int i = 0; i < 100000; i++) {
-					System.out.println("..........");
-				}
-				
-				//Termine de verla
-				bookSelected.stopToSee(dateI, new Date());
-				System.out.println();
-				System.out.println("LeÃ­ste: " + bookSelected);
-				System.out.println("Por: " + bookSelected.getTimeReaded() + " milisegundos");
+				bookSelected.view();
 			}
 			
 		}while(exit !=0);
@@ -273,34 +256,26 @@ public class Main {
 		report.setNameFile("reporte");
 		report.setExtension("txt");
 		report.setTitle(":: VISTOS ::");
-		String contentReport = "";
+		StringBuilder contentReport = new StringBuilder();
 		
-		for (Movie movie : movies) {
-			if (movie.getIsViewed()) {
-				contentReport += movie.toString() + "\n";
-				
-			}
-		}
+		movies.stream()
+		.filter(m->m.getIsViewed())
+		.forEach(m->contentReport.append(m.toString()+"\n"));
 		
-		for (Serie serie : series) {
-			ArrayList<Chapter> chapters = serie.getChapters();
-			for (Chapter chapter : chapters) {
-				if (chapter.getIsViewed()) {
-					contentReport += chapter.toString() + "\n";
-					
-				}
-			}	
-		}
+		//Predicate<Serie> serviesViwed=s->s.getIsViewed();
+		//Consumer<Serie> seriesEach=s-> contentReport.append(s.toString()+"\n");
+		Consumer<Serie> seriesEach=s-> {
+			ArrayList<Chapter> chapters = s.getChapters();
+			chapters.stream().filter(c -> c.getIsViewed()).forEach(c->contentReport.append(c.toString()+"\n"));
+		};
+		series.stream().forEach(seriesEach);
+		
+		books.stream()
+		.filter(b->b.getIsReaded())
+		.forEach(b->contentReport.append(b.toString()+"\n"));
 		
 		
-		for (Book book : books) {
-			if (book.getIsReaded()) {
-				contentReport += book.toString() + "\n";
-				
-			}
-		}
-
-		report.setContent(contentReport);
+		report.setContent(contentReport.toString());
 		report.makeReport();
 		System.out.println("Reporte Generado");
 		System.out.println();
